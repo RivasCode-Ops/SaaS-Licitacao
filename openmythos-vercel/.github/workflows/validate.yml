@@ -1,0 +1,131 @@
+name: Validate Tutorial
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  validate-notebook:
+    name: 🔍 Validar Notebook Colab
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 🔧 Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install nbformat nbconvert
+
+      - name: 📓 Validar notebook .ipynb (JSON válido)
+        run: |
+          python -c "
+          import json, sys
+          with open('tutorial-colab.ipynb', encoding='utf-8') as f:
+              try:
+                  nb = json.load(f)
+                  print('✅ Notebook é um JSON válido')
+                  if 'cells' not in nb:
+                      print('❌ Notebook sem células')
+                      sys.exit(1)
+                  code = [c for c in nb['cells'] if c.get('cell_type') == 'code']
+                  print(f'📊 Total: {len(nb[\"cells\"])} células, {len(code)} de código')
+              except json.JSONDecodeError as e:
+                  print(f'❌ JSON inválido: {e}')
+                  sys.exit(1)
+          "
+
+      - name: ⚠️ Verificar placeholders não substituídos
+        run: |
+          if grep -r "SEU_USUARIO" . --include="*.md" --include="*.tsx" --include="*.ipynb" 2>/dev/null; then
+            echo "❌ Placeholder 'SEU_USUARIO' ainda presente!"
+            exit 1
+          fi
+          echo "✅ Nenhum placeholder encontrado"
+
+      - name: 🔗 Verificar link do Colab
+        run: |
+          if grep -q "colab.research.google.com/github/[^/]*/[^/]*/blob/main/tutorial-colab.ipynb" README.md; then
+            echo "✅ README tem link do Colab"
+          else
+            echo "❌ README sem link do Colab"
+            exit 1
+          fi
+
+  build-website:
+    name: 🌐 Build do site Next.js
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'website/package-lock.json'
+
+      - name: 📦 Instalar dependências
+        working-directory: ./website
+        run: |
+          if [ -f "package-lock.json" ]; then npm ci; else npm install; fi
+
+      - name: 🔨 Build
+        working-directory: ./website
+        run: npm run build
+        env:
+          CI: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: website-build
+          path: ./website/out
+          retention-days: 7
+
+  test-notebook-execution:
+    name: 🧪 Executar notebook (opcional)
+    runs-on: ubuntu-latest
+    needs: [validate-notebook]
+    if: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 🔧 Instalar OpenMythos + dependências
+        run: |
+          pip install open-mythos torch nbconvert papermill
+
+      - name: 🏃 Executar notebook
+        run: |
+          papermill tutorial-colab.ipynb output.ipynb --no-progress-bar --log-output
+
+      - name: 📈 Verificar saída
+        run: |
+          if grep -q "Treino concluído" output.ipynb; then
+            echo "✅ Notebook executou com sucesso"
+          else
+            echo "❌ Falha na execução"
+            exit 1
+          fi
+
+  all-checks-passed:
+    name: ✅ Validação completa
+    runs-on: ubuntu-latest
+    needs: [validate-notebook, build-website]
+    steps:
+      - run: |
+          echo "✅ Todas as validações passaram!"
+          echo "📓 Notebook válido"
+          echo "🌐 Site compila"
+          echo "🚀 Pronto para deploy"

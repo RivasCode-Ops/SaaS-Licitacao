@@ -1,0 +1,186 @@
+"use server"
+
+import { revalidatePath } from "next/cache"
+import { getSession } from "@/lib/auth/session"
+import {
+  createOrgan,
+  deleteOrgan,
+  createSupplier,
+  deleteSupplier,
+  createProcess,
+  deleteProcess,
+  advanceStage,
+  updateOrgan,
+  updateSupplier,
+  getOrgans,
+  getSuppliers,
+  getProcesses,
+  getOrganById,
+  logActivity,
+} from "@/lib/db/queries"
+import { sendEmail, newProcessEmail, stageAdvancedEmail } from "@/lib/email"
+
+export type ActionResult = { error?: string; success?: boolean }
+
+// ─── Organs ───────────────────────────────────────────────────────
+
+export async function createOrganAction(form: FormData) {
+  const name = form.get("name") as string
+  const cnpj = form.get("cnpj") as string
+  const city = form.get("city") as string
+  const state = form.get("state") as string
+
+  if (!name || !cnpj) return { error: "Nome e CNPJ são obrigatórios" }
+
+  const slug = name
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, "-")
+    .slice(0, 100)
+
+  try {
+    await createOrgan({ name, cnpj, slug, city, state })
+    revalidatePath("/dashboard/orgaos")
+    return { success: true }
+  } catch (e: any) {
+    return { error: e.message || "Erro ao criar órgão" }
+  }
+}
+
+export async function deleteOrganAction(id: number) {
+  await deleteOrgan(id)
+  revalidatePath("/dashboard/orgaos")
+}
+
+// ─── Suppliers ────────────────────────────────────────────────────
+
+export async function createSupplierAction(form: FormData) {
+  const companyName = form.get("companyName") as string
+  const cnpj = form.get("cnpj") as string
+  const email = form.get("email") as string
+  const phone = form.get("phone") as string
+  const city = form.get("city") as string
+  const state = form.get("state") as string
+
+  if (!companyName || !cnpj) return { error: "Nome e CNPJ são obrigatórios" }
+
+  try {
+    await createSupplier({ companyName, cnpj, email, phone, city, state })
+    revalidatePath("/dashboard/fornecedores")
+    return { success: true }
+  } catch (e: any) {
+    return { error: e.message || "Erro ao criar fornecedor" }
+  }
+}
+
+export async function deleteSupplierAction(id: number) {
+  await deleteSupplier(id)
+  revalidatePath("/dashboard/fornecedores")
+}
+
+export async function updateSupplierStatusAction(
+  id: number,
+  status: "pending" | "qualified" | "disqualified"
+) {
+  await updateSupplier(id, { status })
+  revalidatePath("/dashboard/fornecedores")
+}
+
+// ─── Processes ────────────────────────────────────────────────────
+
+export async function createProcessAction(form: FormData) {
+  const session = await getSession()
+  if (!session?.user?.id) return { error: "Não autenticado" }
+
+  const title = form.get("title") as string
+  const modality = form.get("modality") as string
+  const number = form.get("number") as string
+  const description = form.get("description") as string
+  const year = parseInt(form.get("year") as string) || new Date().getFullYear()
+
+  if (!title || !modality || !number)
+    return { error: "Preencha todos os campos obrigatórios" }
+
+  const user = await getOrganById(1)
+  if (!user) return { error: "Órgão não encontrado" }
+
+  try {
+    await createProcess({
+      organId: user.id,
+      number,
+      year,
+      title,
+      description,
+      modality,
+    })
+    await logActivity({
+      action: "create_process",
+      details: `Processo ${number}/${year} criado`,
+    })
+
+    const modalities: Record<string,string> = {
+      pregao: "Pregão", concorrencia: "Concorrência", tomada_precos: "Tomada de Preços",
+      convite: "Convite", concurso: "Concurso", leilao: "Leilão",
+      dispensa: "Dispensa", inexigibilidade: "Inexigibilidade",
+    }
+    if (session.user.email) {
+      const msg = newProcessEmail(session.user.name || "Usuário", title, modalities[modality] || modality)
+      await sendEmail({ to: session.user.email, ...msg })
+    }
+
+    revalidatePath("/dashboard/workflow")
+    return { success: true }
+  } catch (e: any) {
+    return { error: e.message || "Erro ao criar processo" }
+  }
+}
+
+export async function deleteProcessAction(id: number) {
+  await deleteProcess(id)
+  revalidatePath("/dashboard/workflow")
+}
+
+export async function advanceStageAction(stageId: number) {
+  const session = await getSession()
+  if (!session?.user?.id) return { error: "Não autenticado" }
+
+  try {
+    const stage = await advanceStage(stageId)
+    if (session.user.email && stage) {
+      const processes = await getProcesses()
+      const process = processes.find((p) =>
+        p.stages?.some((s: any) => s.id === stageId)
+      )
+      if (process) {
+        const stageMeta = process.stages?.find((s: any) => s.id === stageId)
+        const msg = stageAdvancedEmail(
+          session.user.name || "Usuário",
+          process.title,
+          stageMeta?.name || stage.name
+        )
+        await sendEmail({ to: session.user.email, ...msg })
+      }
+    }
+  } catch (e: any) {
+    return { error: e.message || "Erro ao avançar etapa" }
+  }
+
+  revalidatePath("/dashboard/workflow")
+}
+
+// ─── Config ───────────────────────────────────────────────────────
+
+export async function updateOrganConfigAction(form: FormData) {
+  const organId = parseInt(form.get("organId") as string)
+  const name = form.get("name") as string
+  const address = form.get("address") as string
+  const city = form.get("city") as string
+  const state = form.get("state") as string
+  const phone = form.get("phone") as string
+
+  if (!organId || !name) return { error: "Nome é obrigatório" }
+
+  await updateOrgan(organId, { name, address, city, state, phone })
+  revalidatePath("/dashboard/config")
+  return { success: true }
+}

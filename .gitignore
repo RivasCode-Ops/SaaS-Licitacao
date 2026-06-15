@@ -1,0 +1,42 @@
+# Next.js
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python (tutorial)
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# PyTorch checkpoints
+*.pt
+*.pth
+
+# Drizzle
+lib/db/migrations/
+
+# Uploads
+public/uploads/*
+!public/uploads/.gitkeep

@@ -1,0 +1,26 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0a0a0a;
+}
+
+a:hover {
+  opacity: 0.9;
+}
+
+button:hover {
+  background-color: #444 !important;
+}
+
+code {
+  font-family: 'Courier New', monospace;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
