@@ -37,3 +37,4 @@ export const PROPOSAL_STATUS_LABELS: Record<string, string> = {
 }
 
 export * from "./validation"
+export * from "./storage"

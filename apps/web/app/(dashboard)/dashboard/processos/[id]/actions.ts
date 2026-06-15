@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { db, documents } from "@saas/db"
 import { eq } from "drizzle-orm"
-import { saveFile, deleteFile as removeFile } from "@/lib/storage"
+import { saveFile, deleteFile } from "@saas/shared"
 import { documentUploadSchema } from "@/lib/validation"
 import { getSession, rateLimitByUser } from "@saas/auth"
 
@@ -50,7 +50,7 @@ export async function deleteDocumentAction(documentId: number) {
     .limit(1)
 
   if (doc) {
-    await removeFile(doc.url)
+    await deleteFile(doc.url)
     await db.delete(documents).where(eq(documents.id, documentId))
     revalidatePath(`/dashboard/processos/${doc.processId}`)
   }

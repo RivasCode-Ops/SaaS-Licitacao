@@ -5,7 +5,7 @@ import { db, processSuppliers, biddingProcesses, users, suppliers } from "@saas/
 import { eq, and, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { sendEmail, proposalSubmittedEmail } from "@/lib/email"
-import { saveFile } from "@/lib/storage"
+import { saveFile } from "@saas/shared"
 import { submitProposalSchema } from "@/lib/validation"
 
 export type ActionState = {
