@@ -4,6 +4,7 @@ import { comparePasswords, setSession } from "@saas/auth"
 import { createUser, getUserByEmail } from "@/lib/db/queries"
 import { db, activityLogs } from "@saas/db"
 import { sendEmail, welcomeEmail } from "@/lib/email"
+import { signInSchema, signUpSchema } from "@/lib/validation"
 
 export type ActionState = {
   error?: string
@@ -14,12 +15,10 @@ export async function signInAction(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
+  const parsed = signInSchema.safeParse(Object.fromEntries(formData))
+  if (!parsed.success) return { error: parsed.error.errors[0].message }
 
-  if (!email || !password) return { error: "Preencha todos os campos" }
-  if (!email.includes("@")) return { error: "Email inválido" }
-
+  const { email, password } = parsed.data
   const user = await getUserByEmail(email)
   if (!user) return { error: "Email ou senha inválidos." }
 
@@ -41,15 +40,10 @@ export async function signUpAction(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const name = formData.get("name") as string
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
+  const parsed = signUpSchema.safeParse(Object.fromEntries(formData))
+  if (!parsed.success) return { error: parsed.error.errors[0].message }
 
-  if (!name || !email || !password) return { error: "Preencha todos os campos" }
-  if (!email.includes("@")) return { error: "Email inválido" }
-  if (password.length < 6)
-    return { error: "Senha deve ter no mínimo 6 caracteres" }
-
+  const { name, email, password } = parsed.data
   const existing = await getUserByEmail(email)
   if (existing) return { error: "Este email já está cadastrado." }
 

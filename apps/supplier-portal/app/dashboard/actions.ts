@@ -6,6 +6,7 @@ import { eq, and, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { sendEmail, proposalSubmittedEmail } from "@/lib/email"
 import { saveFile } from "@/lib/storage"
+import { submitProposalSchema } from "@/lib/validation"
 
 export type ActionState = {
   error?: string
@@ -19,11 +20,15 @@ export async function submitProposalAction(
   const session = await getSession()
   if (!session?.user?.supplierId) return { error: "Acesso negado" }
 
-  const processId = Number(formData.get("processId"))
-  const proposalValue = formData.get("proposalValue") as string
-  const file = formData.get("proposalFile") as File | null
+  const raw = {
+    processId: formData.get("processId"),
+    proposalValue: formData.get("proposalValue"),
+  }
+  const parsed = submitProposalSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.errors[0].message }
 
-  if (!processId || !proposalValue) return { error: "Preencha todos os campos" }
+  const { processId, proposalValue } = parsed.data
+  const file = formData.get("proposalFile") as File | null
 
   const link = await db.query.processSuppliers.findFirst({
     where: and(
@@ -33,6 +38,9 @@ export async function submitProposalAction(
   })
 
   if (!link) return { error: "Vínculo não encontrado" }
+
+  if (file && file.size > 10 * 1024 * 1024)
+    return { error: "Arquivo deve ter no máximo 10MB" }
 
   const updateData: any = { proposalValue, updatedAt: new Date() }
   if (file && file.size > 0) {

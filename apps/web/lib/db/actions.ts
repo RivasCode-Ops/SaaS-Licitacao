@@ -27,19 +27,19 @@ import {
 import { sendEmail, newProcessEmail, stageAdvancedEmail, proposalStatusEmail } from "@/lib/email"
 import { db, processSuppliers, suppliers, biddingProcesses } from "@saas/db"
 import { eq } from "drizzle-orm"
+import { organSchema, supplierSchema, processSchema, userSchema, emailSchema, passwordSchema, cnpjSchema } from "@saas/shared"
+import { linkSupplierSchema, proposalStatusSchema, organUpdateSchema } from "@/lib/validation"
 
 export type ActionResult = { error?: string; success?: boolean }
 
 // ─── Organs ───────────────────────────────────────────────────────
 
 export async function createOrganAction(form: FormData) {
-  const name = form.get("name") as string
-  const cnpj = form.get("cnpj") as string
-  const city = form.get("city") as string
-  const state = form.get("state") as string
+  const parsed = organSchema.safeParse(Object.fromEntries(form))
+  if (!parsed.success)
+    return { error: parsed.error.errors[0].message }
 
-  if (!name || !cnpj) return { error: "Nome e CNPJ são obrigatórios" }
-
+  const { name, cnpj, city, state } = parsed.data
   const slug = name
     .toLowerCase()
     .replace(/[^\w\s]/g, "")
@@ -66,17 +66,14 @@ export async function createSupplierAction(form: FormData) {
   const session = await getSession()
   if (!session?.user?.organId) return { error: "Não autenticado" }
 
-  const companyName = form.get("companyName") as string
-  const cnpj = form.get("cnpj") as string
-  const email = form.get("email") as string
-  const phone = form.get("phone") as string
-  const city = form.get("city") as string
-  const state = form.get("state") as string
+  const parsed = supplierSchema.safeParse(Object.fromEntries(form))
+  if (!parsed.success)
+    return { error: parsed.error.errors[0].message }
 
-  if (!companyName || !cnpj) return { error: "Nome e CNPJ são obrigatórios" }
+  const { companyName, cnpj, email, phone, city, state } = parsed.data
 
   try {
-    await createSupplier({ organId: session.user.organId, companyName, cnpj, email, phone, city, state })
+    await createSupplier({ organId: session.user.organId, companyName, cnpj, email: email || undefined, phone, city, state })
     revalidatePath("/dashboard/fornecedores")
     return { success: true }
   } catch (e: any) {
@@ -97,6 +94,8 @@ export async function updateSupplierStatusAction(
 ) {
   const session = await getSession()
   if (!session?.user?.organId) return { error: "Não autenticado" }
+  if (!["pending", "qualified", "disqualified"].includes(status))
+    return { error: "Status inválido" }
   await updateSupplier(id, { status }, session.user.organId)
   revalidatePath("/dashboard/fornecedores")
 }
@@ -107,14 +106,11 @@ export async function createProcessAction(form: FormData) {
   const session = await getSession()
   if (!session?.user?.id) return { error: "Não autenticado" }
 
-  const title = form.get("title") as string
-  const modality = form.get("modality") as string
-  const number = form.get("number") as string
-  const description = form.get("description") as string
-  const year = parseInt(form.get("year") as string) || new Date().getFullYear()
+  const parsed = processSchema.safeParse(Object.fromEntries(form))
+  if (!parsed.success)
+    return { error: parsed.error.errors[0].message }
 
-  if (!title || !modality || !number)
-    return { error: "Preencha todos os campos obrigatórios" }
+  const { title, modality, number, description, year } = parsed.data
 
   try {
     await createProcess({
@@ -189,15 +185,14 @@ export async function createUserAction(
   const session = await getSession()
   if (!session?.user?.organId) return { error: "Não autenticado" }
 
-  const name = form.get("name") as string
-  const email = form.get("email") as string
-  const password = form.get("password") as string
-  const role = form.get("role") as "admin" | "manager" | "viewer" | null
+  const parsed = userSchema.safeParse(Object.fromEntries(form))
+  if (!parsed.success)
+    return { error: parsed.error.errors[0].message }
 
-  if (!name || !email || !password) return { error: "Preencha todos os campos" }
+  const { name, email, password, role } = parsed.data
 
   try {
-    await createUser({ name, email, password, role: role || "viewer", organId: session.user.organId })
+    await createUser({ name, email, password, role, organId: session.user.organId })
     revalidatePath("/dashboard/usuarios")
     return { success: true }
   } catch (e: any) {
@@ -212,13 +207,22 @@ export async function updateUserAction(
   const id = parseInt(form.get("id") as string)
   const name = form.get("name") as string
   const email = form.get("email") as string
-  const role = form.get("role") as "admin" | "manager" | "viewer" | null
+  const role = form.get("role") as string
   const active = form.get("active") === "true"
 
   if (!id) return { error: "ID inválido" }
+  if (name && name.length < 1) return { error: "Nome é obrigatório" }
+  if (email && !email.includes("@")) return { error: "Email inválido" }
+  if (role && !["admin", "manager", "viewer", "supplier"].includes(role))
+    return { error: "Role inválida" }
 
   try {
-    await updateUser(id, { name, email, role: role || "viewer", active })
+    await updateUser(id, {
+      name: name || undefined,
+      email: email || undefined,
+      role: (role as any) || undefined,
+      active,
+    })
     revalidatePath("/dashboard/usuarios")
     return { success: true }
   } catch (e: any) {
@@ -240,11 +244,15 @@ export async function linkSupplierAction(form: FormData) {
   const session = await getSession()
   if (!session?.user?.organId) return { error: "Não autenticado" }
 
-  const processId = parseInt(form.get("processId") as string)
-  const supplierIds = form.getAll("supplierIds").map(Number)
+  const raw = {
+    processId: form.get("processId"),
+    supplierIds: form.getAll("supplierIds"),
+  }
+  const parsed = linkSupplierSchema.safeParse(raw)
+  if (!parsed.success)
+    return { error: parsed.error.errors[0].message }
 
-  if (!processId || supplierIds.length === 0)
-    return { error: "Selecione ao menos um fornecedor" }
+  const { processId, supplierIds } = parsed.data
 
   await Promise.all(
     supplierIds.map((sid) => linkSupplierToProcess(processId, sid))
@@ -272,7 +280,10 @@ export async function updateProposalStatusAction(
   const session = await getSession()
   if (!session?.user?.organId) return { error: "Não autenticado" }
 
-  await updateProposalStatus(processSupplierId, status)
+  const parsed = proposalStatusSchema.safeParse({ processSupplierId, status })
+  if (!parsed.success) return { error: parsed.error.errors[0].message }
+
+  await updateProposalStatus(parsed.data.processSupplierId, parsed.data.status)
 
   // ── Notify supplier ──────────────────────────────────────────
 
@@ -309,14 +320,11 @@ export async function updateProposalStatusAction(
 // ─── Config ───────────────────────────────────────────────────────
 
 export async function updateOrganConfigAction(form: FormData) {
-  const organId = parseInt(form.get("organId") as string)
-  const name = form.get("name") as string
-  const address = form.get("address") as string
-  const city = form.get("city") as string
-  const state = form.get("state") as string
-  const phone = form.get("phone") as string
+  const parsed = organUpdateSchema.safeParse(Object.fromEntries(form))
+  if (!parsed.success)
+    return { error: parsed.error.errors[0].message }
 
-  if (!organId || !name) return { error: "Nome é obrigatório" }
+  const { organId, name, address, city, state, phone } = parsed.data
 
   await updateOrgan(organId, { name, address, city, state, phone })
   revalidatePath("/dashboard/config")

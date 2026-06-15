@@ -13,6 +13,7 @@ export const USER_ROLE_LABELS: Record<string, string> = {
   admin: "Administrador",
   manager: "Gerente",
   viewer: "Visualizador",
+  supplier: "Fornecedor",
 }
 
 export const SUPPLIER_STATUS_LABELS: Record<string, string> = {
@@ -27,3 +28,12 @@ export const STAGE_STATUS_LABELS: Record<string, string> = {
   completed: "Concluída",
   cancelled: "Cancelada",
 }
+
+export const PROPOSAL_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente",
+  approved: "Aprovada",
+  rejected: "Rejeitada",
+  withdrawn: "Retirada",
+}
+
+export * from "./validation"

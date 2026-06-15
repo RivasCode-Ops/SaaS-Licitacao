@@ -3,6 +3,7 @@
 import { comparePasswords, setSession } from "@saas/auth"
 import { db, users } from "@saas/db"
 import { eq } from "drizzle-orm"
+import { supplierLoginSchema } from "@/lib/validation"
 
 export type ActionState = {
   error?: string
@@ -13,8 +14,10 @@ export async function loginAction(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
+  const parsed = supplierLoginSchema.safeParse(Object.fromEntries(formData))
+  if (!parsed.success) return { error: parsed.error.errors[0].message }
+
+  const { email, password } = parsed.data
 
   const user = await db.query.users.findFirst({
     where: eq(users.email, email),

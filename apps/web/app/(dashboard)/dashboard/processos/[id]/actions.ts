@@ -4,13 +4,20 @@ import { revalidatePath } from "next/cache"
 import { db, documents } from "@saas/db"
 import { eq } from "drizzle-orm"
 import { saveFile, deleteFile as removeFile } from "@/lib/storage"
+import { documentUploadSchema } from "@/lib/validation"
 
 export async function uploadDocumentAction(form: FormData) {
-  const processId = parseInt(form.get("processId") as string)
-  const file = form.get("file") as File
-  const name = form.get("name") as string
+  const raw = {
+    processId: form.get("processId"),
+    name: form.get("name"),
+  }
+  const parsed = documentUploadSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.errors[0].message }
 
-  if (!processId || !file || !name) return { error: "Campos obrigatórios" }
+  const { processId, name } = parsed.data
+  const file = form.get("file") as File
+  if (!file || file.size === 0) return { error: "Arquivo é obrigatório" }
+  if (file.size > 10 * 1024 * 1024) return { error: "Arquivo deve ter no máximo 10MB" }
 
   const buffer = Buffer.from(await file.arrayBuffer())
   const url = await saveFile(file.name, buffer)
