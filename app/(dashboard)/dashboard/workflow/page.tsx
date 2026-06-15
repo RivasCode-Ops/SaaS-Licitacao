@@ -3,12 +3,23 @@ import { getProcessesByOrgan } from "@/lib/db/queries"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { ProcessTimeline, CreateProcessForm } from "./workflow-form"
+import { ProcessSearch } from "@/components/dashboard/process-search"
 
 export const dynamic = "force-dynamic"
 
-export default async function WorkflowPage() {
+export default async function WorkflowPage(props: {
+  searchParams?: Promise<{ search?: string; modality?: string; active?: string }>
+}) {
+  const searchParams = await props.searchParams
   const session = await getSession()
-  const processes = session?.user?.organId ? await getProcessesByOrgan(session.user.organId) : []
+  const organId = session?.user?.organId
+  const processes = organId
+    ? await getProcessesByOrgan(organId, {
+        search: searchParams?.search,
+        modality: searchParams?.modality,
+        active: searchParams?.active === "true" ? true : searchParams?.active === "false" ? false : undefined,
+      })
+    : []
 
   return (
     <div className="space-y-6">
@@ -16,6 +27,8 @@ export default async function WorkflowPage() {
         <h1 className="text-2xl font-bold">Workflow</h1>
         <CreateProcessForm />
       </div>
+
+      <ProcessSearch />
 
       {processes.length === 0 ? (
         <div className="rounded-xl border border-border bg-white p-12 text-center">

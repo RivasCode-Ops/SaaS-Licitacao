@@ -1,4 +1,4 @@
-import { eq, and, desc, InferSelectModel } from "drizzle-orm"
+import { eq, and, desc, sql, InferSelectModel } from "drizzle-orm"
 import { db } from "./drizzle"
 import {
   users,
@@ -201,9 +201,32 @@ export async function getProcesses() {
   })
 }
 
-export async function getProcessesByOrgan(organId: number) {
+export async function getProcessesByOrgan(
+  organId: number,
+  filters?: {
+    search?: string
+    modality?: string
+    active?: boolean
+  }
+) {
+  const conditions = [eq(biddingProcesses.organId, organId)]
+
+  if (filters?.search) {
+    conditions.push(
+      sql`(${biddingProcesses.title} ILIKE ${`%${filters.search}%`} OR ${biddingProcesses.number} ILIKE ${`%${filters.search}%`})`
+    )
+  }
+
+  if (filters?.modality && filters.modality !== "all") {
+    conditions.push(eq(biddingProcesses.modality, filters.modality as any))
+  }
+
+  if (filters?.active !== undefined) {
+    conditions.push(eq(biddingProcesses.active, filters.active))
+  }
+
   return db.query.biddingProcesses.findMany({
-    where: eq(biddingProcesses.organId, organId),
+    where: and(...conditions),
     orderBy: desc(biddingProcesses.createdAt),
     with: { stages: true },
   })
