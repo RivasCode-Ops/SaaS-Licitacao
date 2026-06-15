@@ -25,9 +25,9 @@ export function UploadForm({ processId }: { processId: number }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-end gap-4 flex-wrap"
+      className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4"
     >
-      <div className="flex-1 min-w-[200px]">
+      <div className="flex-1 min-w-0">
         <label className="block text-sm font-medium mb-1">Nome do documento</label>
         <input
           name="name"
@@ -36,7 +36,7 @@ export function UploadForm({ processId }: { processId: number }) {
           className="w-full rounded-lg border border-border px-3 py-2 text-sm"
         />
       </div>
-      <div className="flex-1 min-w-[200px]">
+      <div className="flex-1 min-w-0">
         <label className="block text-sm font-medium mb-1">Arquivo</label>
         <input
           type="file"

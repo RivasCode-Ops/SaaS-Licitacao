@@ -15,26 +15,26 @@ export function CreateUserForm() {
   const [state, formAction, pending] = useActionState(createUserAction, null)
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <form action={formAction} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
       <input
         type="text"
         name="name"
         placeholder="Nome"
-        className="h-9 rounded-lg border border-border bg-white px-3 text-sm w-36"
+        className="h-9 rounded-lg border border-border bg-white px-3 text-sm w-full sm:w-36"
         required
       />
       <input
         type="email"
         name="email"
         placeholder="Email"
-        className="h-9 rounded-lg border border-border bg-white px-3 text-sm w-44"
+        className="h-9 rounded-lg border border-border bg-white px-3 text-sm w-full sm:w-44"
         required
       />
       <input
         type="password"
         name="password"
         placeholder="Senha"
-        className="h-9 rounded-lg border border-border bg-white px-3 text-sm w-32"
+        className="h-9 rounded-lg border border-border bg-white px-3 text-sm w-full sm:w-32"
         required
       />
       <select
