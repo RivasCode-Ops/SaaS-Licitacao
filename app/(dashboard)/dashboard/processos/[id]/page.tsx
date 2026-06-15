@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth/session"
 import { getProcessWithStages } from "@/lib/db/queries"
 import { redirect, notFound } from "next/navigation"
-import { ArrowLeft, FileText } from "lucide-react"
+import { ArrowLeft, FileText, Printer } from "lucide-react"
 import Link from "next/link"
 import { DocumentList } from "./document-list"
 import { UploadForm } from "./upload-form"
@@ -54,9 +54,17 @@ export default async function ProcessoPage({
               {stageNames[process.modality] || process.modality}
             </p>
           </div>
-          <span className="text-xs font-medium px-2 py-1 rounded bg-primary/10 text-primary">
-            {activeStage?.name || "Concluído"}
-          </span>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/dashboard/processos/${process.id}/relatorio`}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-white hover:opacity-90"
+            >
+              <Printer className="size-3.5" /> Exportar PDF
+            </Link>
+            <span className="text-xs font-medium px-2 py-1 rounded bg-primary/10 text-primary">
+              {activeStage?.name || "Concluído"}
+            </span>
+          </div>
         </div>
         {process.description && (
           <p className="text-sm text-muted mt-4">{process.description}</p>
