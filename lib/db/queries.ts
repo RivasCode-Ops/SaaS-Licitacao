@@ -48,6 +48,34 @@ export type UserWithOrgan = InferSelectModel<typeof users> & {
   organ?: InferSelectModel<typeof organs> | null
 }
 
+export async function getUsersByOrgan(organId: number) {
+  return db.query.users.findMany({
+    where: eq(users.organId, organId),
+    orderBy: desc(users.createdAt),
+  })
+}
+
+export async function updateUser(
+  id: number,
+  data: Partial<{
+    name: string
+    email: string
+    role: "admin" | "manager" | "viewer"
+    active: boolean
+  }>
+) {
+  const [user] = await db
+    .update(users)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(users.id, id))
+    .returning()
+  return user
+}
+
+export async function deleteUser(id: number) {
+  await db.delete(users).where(eq(users.id, id))
+}
+
 // ─── Organs ───────────────────────────────────────────────────────
 
 export async function createOrgan(data: {

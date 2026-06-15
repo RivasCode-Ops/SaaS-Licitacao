@@ -17,6 +17,9 @@ import {
   getProcesses,
   getOrganById,
   logActivity,
+  createUser,
+  updateUser,
+  deleteUser,
 } from "@/lib/db/queries"
 import { sendEmail, newProcessEmail, stageAdvancedEmail } from "@/lib/email"
 
@@ -170,6 +173,60 @@ export async function advanceStageAction(stageId: number) {
   }
 
   revalidatePath("/dashboard/workflow")
+}
+
+// ─── Users ─────────────────────────────────────────────────────────
+
+export async function createUserAction(
+  _prev: ActionResult | null,
+  form: FormData
+): Promise<ActionResult | null> {
+  const session = await getSession()
+  if (!session?.user?.organId) return { error: "Não autenticado" }
+
+  const name = form.get("name") as string
+  const email = form.get("email") as string
+  const password = form.get("password") as string
+  const role = form.get("role") as "admin" | "manager" | "viewer" | null
+
+  if (!name || !email || !password) return { error: "Preencha todos os campos" }
+
+  try {
+    await createUser({ name, email, password, role: role || "viewer", organId: session.user.organId })
+    revalidatePath("/dashboard/usuarios")
+    return { success: true }
+  } catch (e: any) {
+    return { error: e.message || "Erro ao criar usuário" }
+  }
+}
+
+export async function updateUserAction(
+  _prev: ActionResult | null,
+  form: FormData
+): Promise<ActionResult | null> {
+  const id = parseInt(form.get("id") as string)
+  const name = form.get("name") as string
+  const email = form.get("email") as string
+  const role = form.get("role") as "admin" | "manager" | "viewer" | null
+  const active = form.get("active") === "true"
+
+  if (!id) return { error: "ID inválido" }
+
+  try {
+    await updateUser(id, { name, email, role: role || "viewer", active })
+    revalidatePath("/dashboard/usuarios")
+    return { success: true }
+  } catch (e: any) {
+    return { error: e.message || "Erro ao atualizar usuário" }
+  }
+}
+
+export async function deleteUserAction(id: number) {
+  const session = await getSession()
+  if (!session?.user?.organId) return { error: "Não autenticado" }
+
+  await deleteUser(id)
+  revalidatePath("/dashboard/usuarios")
 }
 
 // ─── Config ───────────────────────────────────────────────────────
