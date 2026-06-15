@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { getSession } from "@saas/auth"
+import { getSession, rateLimitByUser } from "@saas/auth"
 import {
   createOrgan,
   deleteOrgan,
@@ -185,11 +185,16 @@ export async function createUserAction(
   const session = await getSession()
   if (!session?.user?.organId) return { error: "Não autenticado" }
 
+  if (!(await rateLimitByUser(session.user.id, 10, "60 s")))
+    return { error: "Muitas tentativas. Aguarde um minuto." }
+
   const parsed = userSchema.safeParse(Object.fromEntries(form))
   if (!parsed.success)
     return { error: parsed.error.errors[0].message }
 
-  const { name, email, password, role } = parsed.data
+  const { name, email, password } = parsed.data
+  const role = parsed.data.role
+  if (role === "supplier") return { error: "Role inválida" }
 
   try {
     await createUser({ name, email, password, role, organId: session.user.organId })

@@ -1,6 +1,6 @@
 "use server"
 
-import { getSession } from "@saas/auth"
+import { getSession, rateLimitByUser } from "@saas/auth"
 import { db, processSuppliers, biddingProcesses, users, suppliers } from "@saas/db"
 import { eq, and, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -19,6 +19,9 @@ export async function submitProposalAction(
 ): Promise<ActionState> {
   const session = await getSession()
   if (!session?.user?.supplierId) return { error: "Acesso negado" }
+
+  if (!(await rateLimitByUser(session.user.id, 10, "60 s")))
+    return { error: "Muitas tentativas. Aguarde um minuto." }
 
   const raw = {
     processId: formData.get("processId"),

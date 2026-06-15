@@ -5,8 +5,14 @@ import { db, documents } from "@saas/db"
 import { eq } from "drizzle-orm"
 import { saveFile, deleteFile as removeFile } from "@/lib/storage"
 import { documentUploadSchema } from "@/lib/validation"
+import { getSession, rateLimitByUser } from "@saas/auth"
 
 export async function uploadDocumentAction(form: FormData) {
+  const session = await getSession()
+  if (!session?.user?.id) return { error: "Não autenticado" }
+  if (!(await rateLimitByUser(session.user.id, 10, "60 s")))
+    return { error: "Muitas tentativas. Aguarde um minuto." }
+
   const raw = {
     processId: form.get("processId"),
     name: form.get("name"),

@@ -1,6 +1,6 @@
 "use server"
 
-import { comparePasswords, setSession } from "@saas/auth"
+import { comparePasswords, setSession, rateLimitByIP } from "@saas/auth"
 import { db, users } from "@saas/db"
 import { eq } from "drizzle-orm"
 import { supplierLoginSchema } from "@/lib/validation"
@@ -18,6 +18,9 @@ export async function loginAction(
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
   const { email, password } = parsed.data
+
+  if (!(await rateLimitByIP(5, "60 s")))
+    return { error: "Muitas tentativas. Aguarde um minuto." }
 
   const user = await db.query.users.findFirst({
     where: eq(users.email, email),

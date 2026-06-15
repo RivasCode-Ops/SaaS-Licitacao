@@ -4,7 +4,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["POSTGRES_URL", "AUTH_SECRET", "RESEND_API_KEY", "EMAIL_FROM", "CRON_SECRET", "BASE_URL", "SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN", "SENTRY_ORG", "SENTRY_PROJECT"]
+      "env": ["POSTGRES_URL", "AUTH_SECRET", "RESEND_API_KEY", "EMAIL_FROM", "CRON_SECRET", "BASE_URL", "SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN", "SENTRY_ORG", "SENTRY_PROJECT", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]
     },
     "dev": {
       "cache": false,

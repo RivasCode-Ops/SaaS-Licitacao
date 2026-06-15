@@ -1,6 +1,6 @@
 "use server"
 
-import { comparePasswords, setSession } from "@saas/auth"
+import { comparePasswords, setSession, rateLimitByIP } from "@saas/auth"
 import { createUser, getUserByEmail } from "@/lib/db/queries"
 import { db, activityLogs } from "@saas/db"
 import { sendEmail, welcomeEmail } from "@/lib/email"
@@ -19,6 +19,10 @@ export async function signInAction(
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
   const { email, password } = parsed.data
+
+  if (!(await rateLimitByIP(5, "60 s")))
+    return { error: "Muitas tentativas. Aguarde um minuto." }
+
   const user = await getUserByEmail(email)
   if (!user) return { error: "Email ou senha inválidos." }
 
@@ -44,6 +48,10 @@ export async function signUpAction(
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
   const { name, email, password } = parsed.data
+
+  if (!(await rateLimitByIP(3, "60 s")))
+    return { error: "Muitas tentativas. Aguarde um minuto." }
+
   const existing = await getUserByEmail(email)
   if (existing) return { error: "Este email já está cadastrado." }
 
