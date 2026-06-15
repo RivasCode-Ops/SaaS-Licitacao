@@ -1,28 +1,34 @@
 {
   "name": "saas-licitacao",
-  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx lib/db/seed.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "dev:web": "turbo dev --filter=@saas/web",
+    "dev:supplier": "turbo dev --filter=@saas/supplier-portal",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "db:generate": "turbo db:generate --filter=@saas/db",
+    "db:migrate": "turbo db:migrate --filter=@saas/db",
+    "db:seed": "tsx apps/web/lib/db/seed.ts",
+    "db:studio": "drizzle-kit studio --config=packages/db/drizzle.config.ts",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json}\""
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.5",
+    "@reduxjs/toolkit": "^2.6.1",
+    "@swc/helpers": "^0.5.23",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
+    "es-toolkit": "^1.35.0",
     "jose": "^6.0.11",
     "lucide-react": "^0.511.0",
     "next": "^15.3.1",
@@ -50,7 +56,10 @@
     "jsdom": "^29.1.1",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.7",
+    "tsup": "^8.4.0",
+    "turbo": "^2.5.0",
     "typescript": "^5.8.3",
     "vitest": "^4.1.8"
-  }
+  },
+  "packageManager": "npm@10.9.2"
 }

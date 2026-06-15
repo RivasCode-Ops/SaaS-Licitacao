@@ -20,9 +20,9 @@ jobs:
 
       - run: npm ci --legacy-peer-deps
 
-      - run: npx turbo lint --filter=@saas/web
+      - run: npm run lint
 
-      - run: npx turbo build --filter=@saas/web
+      - run: npm run build
         env:
           POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}

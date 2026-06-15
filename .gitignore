@@ -1,9 +1,9 @@
+# Dependencies
+node_modules/
+
 # Next.js
 .next/
 out/
-
-# Dependencies
-node_modules/
 
 # Environment
 .env
@@ -35,8 +35,11 @@ venv/
 *.pth
 
 # Drizzle
-lib/db/migrations/
+packages/db/migrations/
 
 # Uploads
-public/uploads/*
-!public/uploads/.gitkeep
+apps/web/public/uploads/*
+!apps/web/public/uploads/.gitkeep
+
+# Turbo
+.turbo/
