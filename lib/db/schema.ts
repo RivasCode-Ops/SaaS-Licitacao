@@ -84,6 +84,9 @@ export const suppliers = pgTable(
   "suppliers",
   {
     id: serial("id").primaryKey(),
+    organId: integer("organ_id")
+      .notNull()
+      .references(() => organs.id, { onDelete: "cascade" }),
     companyName: varchar("company_name", { length: 255 }).notNull(),
     cnpj: varchar("cnpj", { length: 18 }).notNull().unique(),
     tradeName: varchar("trade_name", { length: 255 }),
@@ -97,7 +100,10 @@ export const suppliers = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [uniqueIndex("suppliers_cnpj_idx").on(table.cnpj)]
+  (table) => [
+    index("suppliers_organ_idx").on(table.organId),
+    uniqueIndex("suppliers_cnpj_idx").on(table.cnpj),
+  ]
 )
 
 // ─── Bidding Processes (processos licitatórios) ───────────────────

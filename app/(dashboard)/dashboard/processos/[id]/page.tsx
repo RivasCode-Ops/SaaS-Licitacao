@@ -1,5 +1,6 @@
+import { getSession } from "@/lib/auth/session"
 import { getProcessWithStages } from "@/lib/db/queries"
-import { notFound } from "next/navigation"
+import { redirect, notFound } from "next/navigation"
 import { ArrowLeft, FileText } from "lucide-react"
 import Link from "next/link"
 import { DocumentList } from "./document-list"
@@ -12,9 +13,13 @@ export default async function ProcessoPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  const session = await getSession()
+  if (!session?.user?.organId) redirect("/login/sign-in")
+
   const { id } = await params
   const process = await getProcessWithStages(parseInt(id))
   if (!process) notFound()
+  if (process.organId !== session.user.organId) notFound()
 
   const stageNames: Record<string, string> = {
     pregao: "Pregão",

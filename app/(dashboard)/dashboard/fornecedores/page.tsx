@@ -1,3 +1,4 @@
+import { getSession } from "@/lib/auth/session"
 import { getSuppliers } from "@/lib/db/queries"
 import { Users } from "lucide-react"
 import {
@@ -9,7 +10,8 @@ import {
 export const dynamic = "force-dynamic"
 
 export default async function FornecedoresPage() {
-  const suppliers = await getSuppliers()
+  const session = await getSession()
+  const suppliers = await getSuppliers(session?.user?.organId)
 
   return (
     <div className="space-y-6">

@@ -2,6 +2,7 @@ import "dotenv/config"
 import { db } from "./drizzle"
 import { organs, users, documents, activityLogs, suppliers } from "./schema"
 import { hashPassword } from "../auth/session"
+import { createSupplier } from "./queries"
 import { createProcess } from "./queries"
 
 async function clean() {
@@ -55,6 +56,35 @@ async function seed() {
     title: "Concorrência - Reforma de Prédio Público",
     modality: "concorrencia",
     description: "Reforma do prédio sede da prefeitura municipal.",
+  })
+
+  await createSupplier({
+    organId: adm.id,
+    companyName: "Papelaria Modelo Ltda",
+    cnpj: "11.111.111/0001-11",
+    email: "contato@papelariamodelo.com.br",
+    city: "Exemplo",
+    state: "SP",
+  })
+
+  await createSupplier({
+    organId: adm.id,
+    companyName: "Construtora Exemplo S.A.",
+    cnpj: "22.222.222/0001-22",
+    email: "propostas@construtoraexemplo.com.br",
+    city: "Exemplo",
+    state: "SP",
+    status: "qualified",
+  })
+
+  await createSupplier({
+    organId: adm.id,
+    companyName: "Tech Solutions Ltda",
+    cnpj: "33.333.333/0001-33",
+    email: "vendas@techsolutions.com.br",
+    city: "São Paulo",
+    state: "SP",
+    status: "pending",
   })
 
   console.log("✅ Seed complete!")

@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth/session"
 import { db } from "@/lib/db/drizzle"
 import { biddingProcesses } from "@/lib/db/schema"
-import { count, eq } from "drizzle-orm"
+import { count, eq, and } from "drizzle-orm"
 import { FileText, Users, Building2, Activity } from "lucide-react"
 import Link from "next/link"
 import {
@@ -20,21 +20,22 @@ export default async function DashboardPage() {
   const session = await getSession()
   if (!session?.user?.id) return null
 
-  const organId = session.user.id
+  const organId = session.user.organId
 
   const [processResult] = await db
     .select({ count: count() })
     .from(biddingProcesses)
+    .where(eq(biddingProcesses.organId, organId))
   const [activeResult] = await db
     .select({ count: count() })
     .from(biddingProcesses)
-    .where(eq(biddingProcesses.active, true))
+    .where(and(eq(biddingProcesses.active, true), eq(biddingProcesses.organId, organId)))
 
   const [modalityData, suppliersData, deadlines, logs] = await Promise.all([
-    getProcessesByModality(),
-    getSuppliersByStatus(),
-    getUpcomingDeadlines(),
-    getRecentActivity(),
+    getProcessesByModality(organId),
+    getSuppliersByStatus(organId),
+    getUpcomingDeadlines(organId),
+    getRecentActivity(organId),
   ])
 
   const stats = [

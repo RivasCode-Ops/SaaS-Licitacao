@@ -1,4 +1,5 @@
-import { getProcesses } from "@/lib/db/queries"
+import { getSession } from "@/lib/auth/session"
+import { getProcessesByOrgan } from "@/lib/db/queries"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { ProcessTimeline, CreateProcessForm } from "./workflow-form"
@@ -6,7 +7,8 @@ import { ProcessTimeline, CreateProcessForm } from "./workflow-form"
 export const dynamic = "force-dynamic"
 
 export default async function WorkflowPage() {
-  const processes = await getProcesses()
+  const session = await getSession()
+  const processes = session?.user?.organId ? await getProcessesByOrgan(session.user.organId) : []
 
   return (
     <div className="space-y-6">
@@ -38,7 +40,7 @@ export default async function WorkflowPage() {
                     {process.title}
                   </Link>
                   <p className="text-sm text-muted">
-                    {process.number}/{process.year} · {process.organ?.name}
+                    {process.number}/{process.year}
                   </p>
                 </div>
                 <span className="text-xs uppercase font-medium text-muted bg-gray-100 px-2 py-1 rounded">

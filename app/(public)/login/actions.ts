@@ -33,7 +33,7 @@ export async function signInAction(
     action: "login",
   })
 
-  await setSession({ id: user.id, email: user.email, name: user.name })
+  await setSession({ id: user.id, email: user.email, name: user.name, organId: user.organId ?? 1 })
 
   return { success: true }
 }

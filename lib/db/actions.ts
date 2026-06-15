@@ -55,6 +55,9 @@ export async function deleteOrganAction(id: number) {
 // ─── Suppliers ────────────────────────────────────────────────────
 
 export async function createSupplierAction(form: FormData) {
+  const session = await getSession()
+  if (!session?.user?.organId) return { error: "Não autenticado" }
+
   const companyName = form.get("companyName") as string
   const cnpj = form.get("cnpj") as string
   const email = form.get("email") as string
@@ -65,7 +68,7 @@ export async function createSupplierAction(form: FormData) {
   if (!companyName || !cnpj) return { error: "Nome e CNPJ são obrigatórios" }
 
   try {
-    await createSupplier({ companyName, cnpj, email, phone, city, state })
+    await createSupplier({ organId: session.user.organId, companyName, cnpj, email, phone, city, state })
     revalidatePath("/dashboard/fornecedores")
     return { success: true }
   } catch (e: any) {
@@ -74,6 +77,8 @@ export async function createSupplierAction(form: FormData) {
 }
 
 export async function deleteSupplierAction(id: number) {
+  const session = await getSession()
+  if (!session?.user?.organId) return { error: "Não autenticado" }
   await deleteSupplier(id)
   revalidatePath("/dashboard/fornecedores")
 }
@@ -82,6 +87,8 @@ export async function updateSupplierStatusAction(
   id: number,
   status: "pending" | "qualified" | "disqualified"
 ) {
+  const session = await getSession()
+  if (!session?.user?.organId) return { error: "Não autenticado" }
   await updateSupplier(id, { status })
   revalidatePath("/dashboard/fornecedores")
 }
@@ -101,12 +108,9 @@ export async function createProcessAction(form: FormData) {
   if (!title || !modality || !number)
     return { error: "Preencha todos os campos obrigatórios" }
 
-  const user = await getOrganById(1)
-  if (!user) return { error: "Órgão não encontrado" }
-
   try {
     await createProcess({
-      organId: user.id,
+      organId: session.user.organId,
       number,
       year,
       title,

@@ -3,20 +3,23 @@ import { biddingProcesses, processStages, suppliers, activityLogs, organs } from
 import { count, eq, desc, sql, and, lt, isNotNull } from "drizzle-orm"
 import { getStagesForModality, calculateDeadline } from "@/lib/workflow/rules"
 
-export async function getDashboardStats() {
+export async function getDashboardStats(organId: number) {
   const [processResult] = await db
     .select({ total: count() })
     .from(biddingProcesses)
+    .where(eq(biddingProcesses.organId, organId))
   const [activeResult] = await db
     .select({ total: count() })
     .from(biddingProcesses)
-    .where(eq(biddingProcesses.active, true))
+    .where(and(eq(biddingProcesses.active, true), eq(biddingProcesses.organId, organId)))
   const [supplierResult] = await db
     .select({ total: count() })
     .from(suppliers)
+    .where(eq(suppliers.organId, organId))
   const [organResult] = await db
     .select({ total: count() })
     .from(organs)
+    .where(eq(organs.id, organId))
 
   return {
     totalProcesses: Number(processResult.total),
@@ -26,13 +29,14 @@ export async function getDashboardStats() {
   }
 }
 
-export async function getProcessesByModality() {
+export async function getProcessesByModality(organId: number) {
   const rows = await db
     .select({
       modality: biddingProcesses.modality,
       total: count(),
     })
     .from(biddingProcesses)
+    .where(eq(biddingProcesses.organId, organId))
     .groupBy(biddingProcesses.modality)
     .orderBy(biddingProcesses.modality)
 
@@ -53,13 +57,14 @@ export async function getProcessesByModality() {
   }))
 }
 
-export async function getSuppliersByStatus() {
+export async function getSuppliersByStatus(organId: number) {
   const rows = await db
     .select({
       status: suppliers.status,
       total: count(),
     })
     .from(suppliers)
+    .where(eq(suppliers.organId, organId))
     .groupBy(suppliers.status)
 
   const labels: Record<string, string> = {
@@ -74,7 +79,7 @@ export async function getSuppliersByStatus() {
   }))
 }
 
-export async function getUpcomingDeadlines() {
+export async function getUpcomingDeadlines(organId: number) {
   const activeStages = await db
     .select({
       id: processStages.id,
@@ -87,7 +92,10 @@ export async function getUpcomingDeadlines() {
     .from(processStages)
     .innerJoin(
       biddingProcesses,
-      eq(processStages.processId, biddingProcesses.id)
+      and(
+        eq(processStages.processId, biddingProcesses.id),
+        eq(biddingProcesses.organId, organId)
+      )
     )
     .where(
       and(
@@ -121,7 +129,7 @@ export async function getUpcomingDeadlines() {
   return deadlines
 }
 
-export async function getRecentActivity() {
+export async function getRecentActivity(organId: number) {
   return db
     .select({
       id: activityLogs.id,
@@ -130,6 +138,7 @@ export async function getRecentActivity() {
       createdAt: activityLogs.createdAt,
     })
     .from(activityLogs)
+    .where(eq(activityLogs.organId, organId))
     .orderBy(desc(activityLogs.createdAt))
     .limit(10)
 }

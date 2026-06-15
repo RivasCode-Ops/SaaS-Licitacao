@@ -109,6 +109,7 @@ export async function deleteOrgan(id: number) {
 // ─── Suppliers ────────────────────────────────────────────────────
 
 export async function createSupplier(data: {
+  organId: number
   companyName: string
   cnpj: string
   tradeName?: string
@@ -116,13 +117,16 @@ export async function createSupplier(data: {
   phone?: string
   city?: string
   state?: string
+  status?: "pending" | "qualified" | "disqualified"
 }) {
   const [supplier] = await db.insert(suppliers).values(data).returning()
   return supplier
 }
 
-export async function getSuppliers() {
+export async function getSuppliers(organId?: number) {
+  const where = organId ? eq(suppliers.organId, organId) : undefined
   return db.query.suppliers.findMany({
+    where,
     orderBy: desc(suppliers.updatedAt),
   })
 }
