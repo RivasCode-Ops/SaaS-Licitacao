@@ -13,9 +13,9 @@ export default function Error({
   useEffect(() => { Sentry.captureException(error) }, [error])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <main className="min-h-screen flex items-center justify-center p-8">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-danger">Erro</h1>
+        <h1 className="text-2xl font-bold text-danger">Erro</h1>
         <p className="text-muted">Algo deu errado. Tente novamente.</p>
         <button
           onClick={reset}
@@ -24,6 +24,6 @@ export default function Error({
           Tentar novamente
         </button>
       </div>
-    </div>
+    </main>
   )
 }

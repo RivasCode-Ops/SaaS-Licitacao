@@ -10,5 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "^10.58.0"
   }
 }
