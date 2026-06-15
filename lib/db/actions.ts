@@ -79,7 +79,7 @@ export async function createSupplierAction(form: FormData) {
 export async function deleteSupplierAction(id: number) {
   const session = await getSession()
   if (!session?.user?.organId) return { error: "Não autenticado" }
-  await deleteSupplier(id)
+  await deleteSupplier(id, session.user.organId)
   revalidatePath("/dashboard/fornecedores")
 }
 
@@ -89,7 +89,7 @@ export async function updateSupplierStatusAction(
 ) {
   const session = await getSession()
   if (!session?.user?.organId) return { error: "Não autenticado" }
-  await updateSupplier(id, { status })
+  await updateSupplier(id, { status }, session.user.organId)
   revalidatePath("/dashboard/fornecedores")
 }
 

@@ -20,7 +20,9 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      await jwtVerify(sessionCookie.value, key, { algorithms: ["HS256"] })
+      const { payload } = await jwtVerify(sessionCookie.value, key, { algorithms: ["HS256"] })
+      const user = payload.user as { organId?: number } | undefined
+      if (!user?.organId) throw new Error("missing organId")
     } catch {
       const signInUrl = new URL("/login/sign-in", request.url)
       signInUrl.searchParams.set("redirect", pathname)

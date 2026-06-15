@@ -147,18 +147,21 @@ export async function updateSupplier(
     city: string
     state: string
     status: "pending" | "qualified" | "disqualified"
-  }>
+  }>,
+  organId?: number
 ) {
+  const where = organId ? and(eq(suppliers.id, id), eq(suppliers.organId, organId)) : eq(suppliers.id, id)
   const [supplier] = await db
     .update(suppliers)
     .set({ ...data, updatedAt: new Date() })
-    .where(eq(suppliers.id, id))
+    .where(where)
     .returning()
   return supplier
 }
 
-export async function deleteSupplier(id: number) {
-  await db.delete(suppliers).where(eq(suppliers.id, id))
+export async function deleteSupplier(id: number, organId?: number) {
+  const where = organId ? and(eq(suppliers.id, id), eq(suppliers.organId, organId)) : eq(suppliers.id, id)
+  await db.delete(suppliers).where(where)
 }
 
 // ─── Bidding Processes ────────────────────────────────────────────
