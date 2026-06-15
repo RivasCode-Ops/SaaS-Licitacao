@@ -124,3 +124,48 @@ export function newProcessEmail(userName: string, processTitle: string, modality
     `),
   }
 }
+
+export function proposalSubmittedEmail(adminName: string, supplierName: string, processTitle: string, value: string) {
+  return {
+    subject: `Nova proposta recebida — ${processTitle}`,
+    html: layout(`
+      <h1 style="font-size:22px;margin:0 0 16px;color:#111">Nova proposta recebida</h1>
+      <p style="font-size:15px;line-height:1.6;color:#444;margin:0 0 8px">
+        Olá, <strong>${adminName}</strong>.
+      </p>
+      <p style="font-size:15px;line-height:1.6;color:#444;margin:0 0 8px">
+        O fornecedor <strong>${supplierName}</strong> enviou uma proposta
+        para o processo <strong>${processTitle}</strong>.
+      </p>
+      <p style="font-size:15px;line-height:1.6;color:#444;margin:0 0 16px">
+        Valor proposto: <strong>R$ ${value}</strong>
+      </p>
+      <a href="${process.env.BASE_URL || "http://localhost:3000"}/dashboard/propostas"
+         style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;
+                border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">
+        Ver Propostas
+      </a>
+    `),
+  }
+}
+
+export function proposalStatusEmail(supplierName: string, processTitle: string, statusLabel: string) {
+  return {
+    subject: `Proposta ${statusLabel.toLowerCase()} — ${processTitle}`,
+    html: layout(`
+      <h1 style="font-size:22px;margin:0 0 16px;color:#111">Proposta ${statusLabel.toLowerCase()}</h1>
+      <p style="font-size:15px;line-height:1.6;color:#444;margin:0 0 8px">
+        Olá, <strong>${supplierName}</strong>.
+      </p>
+      <p style="font-size:15px;line-height:1.6;color:#444;margin:0 0 16px">
+        Sua proposta para o processo <strong>${processTitle}</strong>
+        foi <strong>${statusLabel.toLowerCase()}</strong>.
+      </p>
+      <a href="${process.env.BASE_URL || "http://localhost:3000"}/dashboard"
+         style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;
+                border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">
+        Acessar Portal
+      </a>
+    `),
+  }
+}

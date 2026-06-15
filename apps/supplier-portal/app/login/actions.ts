@@ -32,7 +32,8 @@ export async function loginAction(
     id: user.id,
     email: user.email,
     name: user.name,
-    organId: user.organId,
+    organId: user.organId!,
+    supplierId: user.supplierId,
   })
 
   return { success: true }

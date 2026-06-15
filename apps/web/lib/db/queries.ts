@@ -8,6 +8,7 @@ import {
   documents,
   activityLogs,
   suppliers,
+  processSuppliers,
   userRoleEnum,
   supplierStatusEnum,
 } from "@saas/db"
@@ -193,6 +194,94 @@ export async function updateSupplier(
 export async function deleteSupplier(id: number, organId?: number) {
   const where = organId ? and(eq(suppliers.id, id), eq(suppliers.organId, organId)) : eq(suppliers.id, id)
   await db.delete(suppliers).where(where)
+}
+
+// ─── Process-Supplier Links ──────────────────────────────────────
+
+export async function getProcessSuppliers(processId: number) {
+  return db
+    .select({
+      id: processSuppliers.id,
+      supplierId: suppliers.id,
+      companyName: suppliers.companyName,
+      cnpj: suppliers.cnpj,
+      tradeName: suppliers.tradeName,
+      proposalValue: processSuppliers.proposalValue,
+      proposalFile: processSuppliers.proposalFile,
+      status: processSuppliers.status,
+    })
+    .from(processSuppliers)
+    .innerJoin(suppliers, eq(processSuppliers.supplierId, suppliers.id))
+    .where(eq(processSuppliers.processId, processId))
+}
+
+export async function getAvailableSuppliers(organId: number) {
+  return db.query.suppliers.findMany({
+    where: and(eq(suppliers.organId, organId), eq(suppliers.status, "qualified")),
+    orderBy: desc(suppliers.createdAt),
+  })
+}
+
+export async function linkSupplierToProcess(
+  processId: number,
+  supplierId: number
+) {
+  await db
+    .insert(processSuppliers)
+    .values({ processId, supplierId })
+    .onConflictDoNothing()
+}
+
+export async function unlinkSupplierFromProcess(
+  processId: number,
+  supplierId: number
+) {
+  await db
+    .delete(processSuppliers)
+    .where(
+      and(
+        eq(processSuppliers.processId, processId),
+        eq(processSuppliers.supplierId, supplierId)
+      )
+    )
+}
+
+export async function updateProposalStatus(
+  processSupplierId: number,
+  status: "approved" | "rejected"
+) {
+  const [updated] = await db
+    .update(processSuppliers)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(processSuppliers.id, processSupplierId))
+    .returning()
+  return updated
+}
+
+export async function getAllProposals(organId: number) {
+  return db
+    .select({
+      id: processSuppliers.id,
+      processId: biddingProcesses.id,
+      processTitle: biddingProcesses.title,
+      processNumber: biddingProcesses.number,
+      processYear: biddingProcesses.year,
+      supplierId: suppliers.id,
+      companyName: suppliers.companyName,
+      cnpj: suppliers.cnpj,
+      proposalValue: processSuppliers.proposalValue,
+      proposalFile: processSuppliers.proposalFile,
+      status: processSuppliers.status,
+      createdAt: processSuppliers.createdAt,
+    })
+    .from(processSuppliers)
+    .innerJoin(
+      biddingProcesses,
+      eq(processSuppliers.processId, biddingProcesses.id)
+    )
+    .innerJoin(suppliers, eq(processSuppliers.supplierId, suppliers.id))
+    .where(eq(biddingProcesses.organId, organId))
+    .orderBy(desc(processSuppliers.createdAt))
 }
 
 // ─── Bidding Processes ────────────────────────────────────────────

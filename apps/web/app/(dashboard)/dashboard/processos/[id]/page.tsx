@@ -1,10 +1,11 @@
 import { getSession } from "@saas/auth"
-import { getProcessWithStages } from "@/lib/db/queries"
+import { getProcessWithStages, getProcessSuppliers, getAvailableSuppliers } from "@/lib/db/queries"
 import { redirect, notFound } from "next/navigation"
 import { ArrowLeft, FileText, Printer } from "lucide-react"
 import Link from "next/link"
 import { DocumentList } from "./document-list"
 import { UploadForm } from "./upload-form"
+import { SupplierLinkSection } from "./supplier-link-section"
 
 export const dynamic = "force-dynamic"
 
@@ -33,6 +34,11 @@ export default async function ProcessoPage({
   }
 
   const activeStage = process.stages.find((s) => s.status === "active")
+
+  const [linked, available] = await Promise.all([
+    getProcessSuppliers(process.id),
+    getAvailableSuppliers(session.user.organId),
+  ])
 
   return (
     <div className="space-y-6">
@@ -86,6 +92,27 @@ export default async function ProcessoPage({
             processId={process.id}
           />
         </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-white p-6">
+        <SupplierLinkSection
+          linked={linked.map((l) => ({
+            id: l.id,
+            supplierId: l.supplierId,
+            companyName: l.companyName,
+            cnpj: l.cnpj,
+            tradeName: l.tradeName,
+            proposalValue: l.proposalValue,
+            proposalFile: l.proposalFile,
+            status: l.status,
+          }))}
+          available={available.map((a) => ({
+            id: a.id,
+            companyName: a.companyName,
+            cnpj: a.cnpj,
+          }))}
+          processId={process.id}
+        />
       </div>
     </div>
   )

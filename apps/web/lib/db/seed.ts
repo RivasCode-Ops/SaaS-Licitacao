@@ -1,11 +1,12 @@
 import "dotenv/config"
 import { eq } from "drizzle-orm"
-import { db, organs, users, biddingProcesses, processStages, documents, activityLogs, suppliers } from "@saas/db"
+import { db, organs, users, biddingProcesses, processStages, documents, activityLogs, suppliers, processSuppliers } from "@saas/db"
 import { hashPassword } from "@saas/auth"
 import { createSupplier } from "./queries"
 import { createProcess } from "./queries"
 
 async function clean() {
+  await db.delete(processSuppliers)
   await db.delete(documents)
   await db.delete(activityLogs)
   await db.delete(processStages)
@@ -169,6 +170,20 @@ async function seed() {
     status: "qualified",
   })
 
+  // ── Supplier User ─────────────────────────────────────────────
+
+  const [supplierUser] = await db
+    .insert(users)
+    .values({
+      name: "João Fornecedor",
+      email: "fornecedor@licita.dev",
+      passwordHash,
+      role: "supplier",
+      organId: pmExemplo.id,
+      supplierId: sup1!.id,
+    })
+    .returning()
+
   // ── Helper to simulate stage advancement ───────────────────────
 
   async function advanceProcess(processId: number, stagesToComplete: number) {
@@ -311,6 +326,17 @@ async function seed() {
     await db.insert(activityLogs).values(log)
   }
 
+  // ── Process-Supplier Links ─────────────────────────────────────
+
+  await db.insert(processSuppliers).values([
+    { processId: p1!.id, supplierId: sup1!.id },
+    { processId: p2!.id, supplierId: sup2!.id },
+    { processId: p3!.id, supplierId: sup2!.id },
+    { processId: p4!.id, supplierId: sup1!.id },
+    { processId: p7!.id, supplierId: sup4!.id },
+    { processId: p9!.id, supplierId: sup6!.id },
+  ])
+
   // ── Summary ──────────────────────────────────────────────────────
 
   console.log("✅ Seed complete!")
@@ -321,9 +347,12 @@ async function seed() {
   console.log(`   👤 Viewer:  viewer@licita.dev / 123456`)
   console.log(`   🏭 6 fornecedores · 8 processos`)
   console.log("")
-  console.log("📋 Câmara Municipal de Exemplo")
-  console.log(`   👤 Admin: camara@licita.dev / 123456`)
-  console.log(`   🏭 1 fornecedor · 1 processo`)
+   console.log("📋 Câmara Municipal de Exemplo")
+   console.log(`   👤 Admin: camara@licita.dev / 123456`)
+   console.log(`   🏭 1 fornecedor · 1 processo`)
+   console.log("")
+   console.log("📋 Fornecedor")
+   console.log(`   👤 Supplier: fornecedor@licita.dev / 123456`)
 }
 
 seed().catch((err) => {

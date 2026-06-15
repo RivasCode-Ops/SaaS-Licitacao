@@ -20,8 +20,13 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  linkSupplierToProcess,
+  unlinkSupplierFromProcess,
+  updateProposalStatus,
 } from "@/lib/db/queries"
-import { sendEmail, newProcessEmail, stageAdvancedEmail } from "@/lib/email"
+import { sendEmail, newProcessEmail, stageAdvancedEmail, proposalStatusEmail } from "@/lib/email"
+import { db, processSuppliers, suppliers, biddingProcesses } from "@saas/db"
+import { eq } from "drizzle-orm"
 
 export type ActionResult = { error?: string; success?: boolean }
 
@@ -227,6 +232,78 @@ export async function deleteUserAction(id: number) {
 
   await deleteUser(id)
   revalidatePath("/dashboard/usuarios")
+}
+
+// ─── Process-Supplier Links ───────────────────────────────────────
+
+export async function linkSupplierAction(form: FormData) {
+  const session = await getSession()
+  if (!session?.user?.organId) return { error: "Não autenticado" }
+
+  const processId = parseInt(form.get("processId") as string)
+  const supplierIds = form.getAll("supplierIds").map(Number)
+
+  if (!processId || supplierIds.length === 0)
+    return { error: "Selecione ao menos um fornecedor" }
+
+  await Promise.all(
+    supplierIds.map((sid) => linkSupplierToProcess(processId, sid))
+  )
+
+  revalidatePath(`/dashboard/processos/${processId}`)
+  return { success: true }
+}
+
+export async function unlinkSupplierAction(
+  processId: number,
+  supplierId: number
+) {
+  const session = await getSession()
+  if (!session?.user?.organId) return { error: "Não autenticado" }
+
+  await unlinkSupplierFromProcess(processId, supplierId)
+  revalidatePath(`/dashboard/processos/${processId}`)
+}
+
+export async function updateProposalStatusAction(
+  processSupplierId: number,
+  status: "approved" | "rejected"
+) {
+  const session = await getSession()
+  if (!session?.user?.organId) return { error: "Não autenticado" }
+
+  await updateProposalStatus(processSupplierId, status)
+
+  // ── Notify supplier ──────────────────────────────────────────
+
+  try {
+    const rows = await db
+      .select({
+        supplierName: suppliers.companyName,
+        supplierEmail: suppliers.email,
+        processTitle: biddingProcesses.title,
+      })
+      .from(processSuppliers)
+      .innerJoin(suppliers, eq(processSuppliers.supplierId, suppliers.id))
+      .innerJoin(
+        biddingProcesses,
+        eq(processSuppliers.processId, biddingProcesses.id)
+      )
+      .where(eq(processSuppliers.id, processSupplierId))
+      .limit(1)
+
+    const row = rows[0]
+    if (row?.supplierEmail) {
+      const statusLabel = status === "approved" ? "Aprovada" : "Rejeitada"
+      const msg = proposalStatusEmail(row.supplierName, row.processTitle, statusLabel)
+      await sendEmail({ to: row.supplierEmail, ...msg })
+    }
+  } catch (e) {
+    console.error("[email] Failed to notify supplier:", e)
+  }
+
+  revalidatePath("/dashboard/propostas")
+  return { success: true }
 }
 
 // ─── Config ───────────────────────────────────────────────────────

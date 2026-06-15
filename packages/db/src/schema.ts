@@ -14,7 +14,12 @@ import { relations } from "drizzle-orm"
 
 // ─── Enums ───────────────────────────────────────────────────────
 
-export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "viewer"])
+export const userRoleEnum = pgEnum("user_role", [
+  "admin",
+  "manager",
+  "viewer",
+  "supplier",
+])
 export const supplierStatusEnum = pgEnum("supplier_status", [
   "pending",
   "qualified",
@@ -25,6 +30,12 @@ export const stageStatusEnum = pgEnum("stage_status", [
   "active",
   "completed",
   "cancelled",
+])
+export const proposalStatusEnum = pgEnum("proposal_status", [
+  "pending",
+  "approved",
+  "rejected",
+  "withdrawn",
 ])
 export const modalityEnum = pgEnum("modality", [
   "pregao",
@@ -68,6 +79,9 @@ export const users = pgTable(
     passwordHash: text("password_hash").notNull(),
     role: userRoleEnum("role").default("viewer").notNull(),
     organId: integer("organ_id").references(() => organs.id, {
+      onDelete: "set null",
+    }),
+    supplierId: integer("supplier_id").references(() => suppliers.id, {
       onDelete: "set null",
     }),
     active: boolean("active").default(true).notNull(),
@@ -191,6 +205,31 @@ export const activityLogs = pgTable(
   (table) => [index("logs_organ_idx").on(table.organId)]
 )
 
+// ─── Process-Supplier Links (fornecedores vinculados a processos) ─
+
+export const processSuppliers = pgTable(
+  "process_suppliers",
+  {
+    id: serial("id").primaryKey(),
+    processId: integer("process_id")
+      .notNull()
+      .references(() => biddingProcesses.id, { onDelete: "cascade" }),
+    supplierId: integer("supplier_id")
+      .notNull()
+      .references(() => suppliers.id, { onDelete: "cascade" }),
+    proposalValue: varchar("proposal_value", { length: 50 }),
+    proposalFile: text("proposal_file"),
+    status: proposalStatusEnum("status").default("pending").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("ps_process_idx").on(table.processId),
+    index("ps_supplier_idx").on(table.supplierId),
+    uniqueIndex("ps_unique_link").on(table.processId, table.supplierId),
+  ]
+)
+
 // ─── Relations ────────────────────────────────────────────────────
 
 export const organsRelations = relations(organs, ({ many }) => ({
@@ -204,8 +243,21 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.organId],
     references: [organs.id],
   }),
+  supplier: one(suppliers, {
+    fields: [users.supplierId],
+    references: [suppliers.id],
+  }),
   documents: many(documents),
   logs: many(activityLogs),
+}))
+
+export const suppliersRelations = relations(suppliers, ({ one, many }) => ({
+  organ: one(organs, {
+    fields: [suppliers.organId],
+    references: [organs.id],
+  }),
+  users: many(users),
+  processSuppliers: many(processSuppliers),
 }))
 
 export const biddingProcessesRelations = relations(
@@ -218,6 +270,7 @@ export const biddingProcessesRelations = relations(
     stages: many(processStages),
     documents: many(documents),
     logs: many(activityLogs),
+    processSuppliers: many(processSuppliers),
   })
 )
 
@@ -238,6 +291,20 @@ export const processStagesRelations = relations(
     process: one(biddingProcesses, {
       fields: [processStages.processId],
       references: [biddingProcesses.id],
+    }),
+  })
+)
+
+export const processSuppliersRelations = relations(
+  processSuppliers,
+  ({ one }) => ({
+    process: one(biddingProcesses, {
+      fields: [processSuppliers.processId],
+      references: [biddingProcesses.id],
+    }),
+    supplier: one(suppliers, {
+      fields: [processSuppliers.supplierId],
+      references: [suppliers.id],
     }),
   })
 )

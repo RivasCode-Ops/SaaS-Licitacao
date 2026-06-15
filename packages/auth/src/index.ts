@@ -1,7 +1,6 @@
 import { compare, hash } from "bcryptjs"
 import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
-import "server-only"
 
 const SALT_ROUNDS = 10
 
@@ -14,6 +13,7 @@ export type SessionUser = {
   email: string
   name: string
   organId: number
+  supplierId?: number | null
 }
 
 export type SessionData = {

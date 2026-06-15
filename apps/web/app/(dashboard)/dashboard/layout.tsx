@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ArrowRightLeft,
   UserCog,
+  ClipboardCheck,
 } from "lucide-react"
 
 const navItems = [
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/dashboard/orgaos", label: "Órgãos", icon: Building2 },
   { href: "/dashboard/fornecedores", label: "Fornecedores", icon: Users },
   { href: "/dashboard/workflow", label: "Workflow", icon: ArrowRightLeft },
+  { href: "/dashboard/propostas", label: "Propostas", icon: ClipboardCheck },
   { href: "/dashboard/usuarios", label: "Usuários", icon: UserCog },
   { href: "/dashboard/config", label: "Configurações", icon: Settings },
 ]
