@@ -1,7 +1,10 @@
 import { Suspense } from "react"
 import { LoginForm } from "../login-form"
 
-export default function SignInPage() {
+export default async function SignInPage(props: {
+  searchParams?: Promise<{ error?: string }>
+}) {
+  const searchParams = await props.searchParams
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
@@ -12,7 +15,7 @@ export default function SignInPage() {
           </p>
         </div>
         <Suspense>
-          <LoginForm mode="signin" />
+          <LoginForm mode="signin" oauthError={searchParams?.error} />
         </Suspense>
       </div>
     </div>

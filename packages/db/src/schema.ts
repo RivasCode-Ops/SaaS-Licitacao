@@ -205,6 +205,32 @@ export const activityLogs = pgTable(
   (table) => [index("logs_organ_idx").on(table.organId)]
 )
 
+// ─── OAuth Accounts ───────────────────────────────────────────────
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: varchar("provider", { length: 50 }).notNull(),
+    providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("accounts_provider_idx").on(table.provider, table.providerAccountId),
+    index("accounts_user_idx").on(table.userId),
+  ]
+)
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
+}))
+
 // ─── Process-Supplier Links (fornecedores vinculados a processos) ─
 
 export const processSuppliers = pgTable(

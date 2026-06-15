@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { LoginForm } from "./login-form"
 
 export default function LoginPage() {
@@ -8,7 +9,9 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold">Portal do Fornecedor</h1>
           <p className="text-sm text-muted mt-1">Faça login para continuar</p>
         </div>
-        <LoginForm />
+        <Suspense>
+          <LoginForm />
+        </Suspense>
       </div>
     </main>
   )
