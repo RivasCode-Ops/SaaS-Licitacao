@@ -3,8 +3,8 @@
 import { comparePasswords, setSession, rateLimitByIP } from "@saas/auth"
 import { createUser, getUserByEmail } from "@/lib/db/queries"
 import { db, activityLogs } from "@saas/db"
-import { sendEmail, welcomeEmail } from "@/lib/email"
 import { signInSchema, signUpSchema } from "@/lib/validation"
+import { inngest } from "@saas/shared"
 
 export type ActionState = {
   error?: string
@@ -57,8 +57,7 @@ export async function signUpAction(
 
   await createUser({ name, email, password, role: "viewer" })
 
-  const msg = welcomeEmail(name)
-  await sendEmail({ to: email, ...msg })
+  await inngest.send({ name: "email/welcome", data: { name, email } })
 
   return { success: true }
 }

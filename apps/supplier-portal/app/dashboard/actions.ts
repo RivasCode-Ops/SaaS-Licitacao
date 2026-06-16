@@ -4,8 +4,7 @@ import { getSession, rateLimitByUser } from "@saas/auth"
 import { db, processSuppliers, biddingProcesses, users, suppliers } from "@saas/db"
 import { eq, and, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { sendEmail, proposalSubmittedEmail } from "@/lib/email"
-import { saveFile } from "@saas/shared"
+import { saveFile, inngest } from "@saas/shared"
 import { submitProposalSchema } from "@/lib/validation"
 
 export type ActionState = {
@@ -66,34 +65,28 @@ export async function submitProposalAction(
       .limit(1)
 
     const [supplier] = await db
-      .select({ companyName: suppliers.companyName })
+      .select({
+        companyName: suppliers.companyName,
+        email: suppliers.email,
+      })
       .from(suppliers)
       .where(eq(suppliers.id, session.user.supplierId))
       .limit(1)
 
     if (process && supplier) {
-      const admins = await db
-        .select({ name: users.name, email: users.email })
-        .from(users)
-        .where(
-          and(
-            eq(users.organId, process.organId),
-            inArray(users.role, ["admin", "manager"])
-          )
-        )
-
-      for (const admin of admins) {
-        const msg = proposalSubmittedEmail(
-          admin.name,
-          supplier.companyName,
-          process.title,
-          proposalValue
-        )
-        await sendEmail({ to: admin.email, ...msg })
-      }
+      await inngest.send({
+        name: "email/proposal-submitted",
+        data: {
+          supplierName: supplier.companyName,
+          supplierEmail: supplier.email || "",
+          processTitle: process.title,
+          proposalValue,
+          organId: process.organId,
+        },
+      })
     }
   } catch (e) {
-    console.error("[email] Failed to notify admins:", e)
+    console.error("[inngest] Failed to enqueue proposal notification:", e)
   }
 
   revalidatePath("/dashboard")

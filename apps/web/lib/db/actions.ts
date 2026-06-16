@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { getSession, rateLimitByUser } from "@saas/auth"
+import { inngest } from "@saas/shared"
 import {
   createOrgan,
   deleteOrgan,
@@ -24,7 +25,7 @@ import {
   unlinkSupplierFromProcess,
   updateProposalStatus,
 } from "@/lib/db/queries"
-import { sendEmail, newProcessEmail, stageAdvancedEmail, proposalStatusEmail } from "@/lib/email"
+import { sendEmail, newProcessEmail, stageAdvancedEmail } from "@/lib/email"
 import { db, processSuppliers, suppliers, biddingProcesses } from "@saas/db"
 import { eq } from "drizzle-orm"
 import { organSchema, supplierSchema, processSchema, userSchema, emailSchema, passwordSchema, cnpjSchema } from "@saas/shared"
@@ -311,11 +312,18 @@ export async function updateProposalStatusAction(
     const row = rows[0]
     if (row?.supplierEmail) {
       const statusLabel = status === "approved" ? "Aprovada" : "Rejeitada"
-      const msg = proposalStatusEmail(row.supplierName, row.processTitle, statusLabel)
-      await sendEmail({ to: row.supplierEmail, ...msg })
+      await inngest.send({
+        name: "email/proposal-status",
+        data: {
+          supplierName: row.supplierName,
+          supplierEmail: row.supplierEmail,
+          processTitle: row.processTitle,
+          status: statusLabel,
+        },
+      })
     }
   } catch (e) {
-    console.error("[email] Failed to notify supplier:", e)
+    console.error("[inngest] Failed to enqueue proposal status email:", e)
   }
 
   revalidatePath("/dashboard/propostas")
